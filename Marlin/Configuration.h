@@ -55,7 +55,7 @@
 // 21 = Elefu Ra Board (v3)
 
 #ifndef MOTHERBOARD
-#define MOTHERBOARD 7
+#define MOTHERBOARD 80
 #endif
 
 // Define this to set a custom name for your generic Mendel,
@@ -409,7 +409,7 @@ const bool Z_MAX_ENDSTOP_INVERTING = true; // set to true to invert the logic of
 
 // The RepRapDiscount Smart Controller (white PCB)
 // http://reprap.org/wiki/RepRapDiscount_Smart_Controller
-//#define REPRAP_DISCOUNT_SMART_CONTROLLER
+#define REPRAP_DISCOUNT_SMART_CONTROLLER
 
 // The GADGETS3D G3D LCD/SD Controller (blue PCB)
 // http://reprap.org/wiki/RAMPS_1.3/1.4_GADGETS3D_Shield_with_Panel
@@ -580,18 +580,7 @@ const bool Z_MAX_ENDSTOP_INVERTING = true; // set to true to invert the logic of
 //#define SERVO_ENDSTOP_ANGLES {0,0, 0,0, 70,0} // X,Y,Z Axis Extend and Retract angles
 
 
-// Pause printer when filament runs out
-#define PAUSE_NO_FILAMENT
 
-#ifdef PAUSE_NO_FILAMENT
-
-#define FILAMENT_SWITCH_PULLUP
-const bool FILAMENT_SWITCH_INVERTING = true; // set to true to invert the logic of the switch
-
-#define EXTRUDER_1_PAUSE true
-#define EXTRUDER_2_PAUSE true
-#define EXTRUDER_3_PAUSE true
-#endif
 
 
 #include "Configuration_adv.h"

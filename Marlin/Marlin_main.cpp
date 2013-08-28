@@ -215,18 +215,7 @@ float delta[3] = {0.0, 0.0, 0.0};
 #endif
 
 #ifdef PAUSE_NO_FILAMENT
-  bool pause_on_no_filament[EXTRUDERS];
-  int filament_switch_pins[EXTRUDERS];
-  pause_on_no_filament[0] = EXTRUDER_1_PAUSE;
-  filament_switch_pins[0] = FILAMENT_SWITCH_E1;
-  #if EXTRUDERS > 1
-    pause_on_no_filament[1] = EXTRUDER_2_PAUSE;
-    filament_switch_pins[1] = FILAMENT_SWITCH_E2;
-  #endif
-  #if EXTRUDERS > 2
-    pause_on_no_filament[2] = EXTRUDER_3_PAUSE;
-    filament_switch_pins[1] = FILAMENT_SWITCH_E3;
-  #endif
+  bool pause_on_no_filament[EXTRUDERS] = EXTRUDER_PAUSE;
 #endif
 
 //===========================================================================
@@ -867,15 +856,27 @@ static void homeaxis(int axis) {
 }
 #define HOMEAXIS(LETTER) homeaxis(LETTER##_AXIS)
 
+#ifdef PAUSE_NO_FILAMENT
 void watch_filament()
 {
-	//If we are watching filament
-	if (pause_on_no_filament[active_extruder])
-	{
-		//Check if there is filament in the current extruder
-		if (READ(filament_switch_pins[active_extruder])^FILAMENT_SWITCH_INVERTING)
-		{
-		  //Pause		  
+  //If we are watching filament
+  if (pause_on_no_filament[active_extruder])
+  {
+    //Check if there is filament in the current extruder
+    //if (READ(filament_switch_pins[active_extruder])^FILAMENT_SWITCH_INVERTING)
+    if (
+#if defined(FILAMENT_SWITCH_E1) && FILAMENT_SWITCH_E1 > -1
+       (active_extruder == 0 && READ(FILAMENT_SWITCH_E1)^FILAMENT_SWITCH_INVERTING) ||
+#endif
+#if defined(FILAMENT_SWITCH_E2) && FILAMENT_SWITCH_E2 > -1
+       (active_extruder == ` && READ(FILAMENT_SWITCH_E2)^FILAMENT_SWITCH_INVERTING) ||
+#endif
+#if defined(FILAMENT_SWITCH_E3) && FILAMENT_SWITCH_E3 > -1
+       (active_extruder == 1 && READ(FILAMENT_SWITCH_E3)^FILAMENT_SWITCH_INVERTING) ||
+#endif
+      0)
+      {
+      //Pause		  
       float target[4];
       float lastpos[4];
       target[X_AXIS]=current_position[X_AXIS];
@@ -934,6 +935,7 @@ void watch_filament()
 		}
 	}
 }
+#endif
 
 void process_commands()
 {

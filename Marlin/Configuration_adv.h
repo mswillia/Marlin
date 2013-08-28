@@ -359,6 +359,15 @@ const unsigned int dropsegments=5; //everything with less than this number of st
     #define FILAMENTCHANGE_FIRSTRETRACT -2
     #define FILAMENTCHANGE_FINALRETRACT -100
   #endif
+  
+  // Pause printer when filament runs out
+  #define PAUSE_NO_FILAMENT
+  #ifdef PAUSE_NO_FILAMENT
+    #define FILAMENT_SWITCH_PULLUP
+    const bool FILAMENT_SWITCH_INVERTING = true; // set to true to invert the logic of the switch
+    #define EXTRUDER_PAUSE {true}
+  #endif
+
 #endif
  
 //===========================================================================
