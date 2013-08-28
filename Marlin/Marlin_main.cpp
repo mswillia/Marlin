@@ -1383,6 +1383,9 @@ void process_commands()
         previous_millis_cmd = millis();
       }
       break;
+    case 112: // M112 - Emergency stop
+      kill();
+      break;
     case 190: // M190 - Wait for bed heater to reach target.
     #if defined(TEMP_BED_PIN) && TEMP_BED_PIN > -1
         LCD_MESSAGEPGM(MSG_BED_HEATING);
