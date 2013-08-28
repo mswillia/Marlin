@@ -579,6 +579,21 @@ const bool Z_MAX_ENDSTOP_INVERTING = true; // set to true to invert the logic of
 //#define SERVO_ENDSTOPS {-1, -1, 0} // Servo index for X, Y, Z. Disable with -1
 //#define SERVO_ENDSTOP_ANGLES {0,0, 0,0, 70,0} // X,Y,Z Axis Extend and Retract angles
 
+
+// Pause printer when filament runs out
+#define PAUSE_NO_FILAMENT
+
+#ifdef PAUSE_NO_FILAMENT
+
+#define FILAMENT_SWITCH_PULLUP
+const bool FILAMENT_SWITCH_INVERTING = true; // set to true to invert the logic of the switch
+
+#define EXTRUDER_1_PAUSE true
+#define EXTRUDER_2_PAUSE true
+#define EXTRUDER_3_PAUSE true
+#endif
+
+
 #include "Configuration_adv.h"
 #include "thermistortables.h"
 

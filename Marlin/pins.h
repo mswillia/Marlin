@@ -1309,6 +1309,10 @@
 #define BTN_EN2            12
 #define BTN_ENC            43
 
+#define FILAMENT_SWITCH_E1 31
+#define FILAMENT_SWITCH_E2 -1
+#define FILAMENT_SWITCH_E3 -1 
+
 #endif //MOTHERBOARD==80
 
 

@@ -86,6 +86,7 @@
 // M31  - Output time since last M109 or SD card start to serial
 // M32  - Select file and start SD print (Can be used when printing from SD card)
 // M42  - Change pin status via gcode Use M42 Px Sy to set pin x to value y, when omitting Px the onboard led will be used.
+// M43  - Set the printer to pause (or not) when the current extruder runs out of filament.
 // M80  - Turn on Power Supply
 // M81  - Turn off Power Supply
 // M82  - Set E codes absolute (default)
@@ -213,6 +214,21 @@ int EtoPPressure=0;
 float delta[3] = {0.0, 0.0, 0.0};
 #endif
 
+#ifdef PAUSE_NO_FILAMENT
+  bool pause_on_no_filament[EXTRUDERS];
+  int filament_switch_pins[EXTRUDERS];
+  pause_on_no_filament[0] = EXTRUDER_1_PAUSE;
+  filament_switch_pins[0] = FILAMENT_SWITCH_E1;
+  #if EXTRUDERS > 1
+    pause_on_no_filament[1] = EXTRUDER_2_PAUSE;
+    filament_switch_pins[1] = FILAMENT_SWITCH_E2;
+  #endif
+  #if EXTRUDERS > 2
+    pause_on_no_filament[2] = EXTRUDER_3_PAUSE;
+    filament_switch_pins[1] = FILAMENT_SWITCH_E3;
+  #endif
+#endif
+
 //===========================================================================
 //=============================private variables=============================
 //===========================================================================
@@ -325,6 +341,30 @@ void enquecommand_P(const char *cmd)
   }
 }
 
+#ifdef PAUSE_NO_FILAMENT
+void setup_filament_switch()
+{
+  #if defined(FILAMENT_SWITCH_E1) && FILAMENT_SWITCH_E1 > -1
+    pinMode(FILAMENT_SWITCH_E1,INPUT);
+    #ifdef FILAMENT_SWITCH_PULLUP
+	  WRITE(FILAMENT_SWITCH_E1,HIGH);
+	#endif
+  #endif
+  #if defined(FILAMENT_SWITCH_E2) && FILAMENT_SWITCH_E2 > -1
+    pinMode(FILAMENT_SWITCH_E2,INPUT);
+    #ifdef FILAMENT_SWITCH_PULLUP
+      WRITE(FILAMENT_SWITCH_E2,HIGH);
+	#endif
+  #endif
+  #if defined(FILAMENT_SWITCH_E3) && FILAMENT_SWITCH_E3 > -1
+    pinMode(FILAMENT_SWITCH_E3,INPUT);
+    #ifdef FILAMENT_SWITCH_PULLUP
+      WRITE(FILAMENT_SWITCH_E3,HIGH);
+	#endif
+  #endif
+}
+#endif
+
 void setup_killpin()
 {
   #if defined(KILL_PIN) && KILL_PIN > -1
@@ -394,6 +434,11 @@ void setup()
 {
   setup_killpin();
   setup_powerhold();
+  
+  #ifdef PAUSE_NO_FILAMENT
+  setup_filament_switch();
+  #endif
+  
   MYSERIAL.begin(BAUDRATE);
   SERIAL_PROTOCOLLNPGM("start");
   SERIAL_ECHO_START;
@@ -822,6 +867,74 @@ static void homeaxis(int axis) {
 }
 #define HOMEAXIS(LETTER) homeaxis(LETTER##_AXIS)
 
+void watch_filament()
+{
+	//If we are watching filament
+	if (pause_on_no_filament[active_extruder])
+	{
+		//Check if there is filament in the current extruder
+		if (READ(filament_switch_pins[active_extruder])^FILAMENT_SWITCH_INVERTING)
+		{
+		  //Pause		  
+      float target[4];
+      float lastpos[4];
+      target[X_AXIS]=current_position[X_AXIS];
+      target[Y_AXIS]=current_position[Y_AXIS];
+      target[Z_AXIS]=current_position[Z_AXIS] + 1.0;
+      target[E_AXIS]=current_position[E_AXIS];
+      lastpos[X_AXIS]=current_position[X_AXIS];
+      lastpos[Y_AXIS]=current_position[Y_AXIS];
+      lastpos[Z_AXIS]=current_position[Z_AXIS];
+      lastpos[E_AXIS]=current_position[E_AXIS];
+		
+      //Lift
+      plan_buffer_line(target[X_AXIS], target[Y_AXIS], target[Z_AXIS], target[E_AXIS], feedrate/60, active_extruder);
+
+      //Home X/Y
+      HOMEAXIS(X);
+      HOMEAXIS(Y);
+
+      //finish moves
+      st_synchronize();
+  
+      //disable extruder steppers so filament can be removed
+      disable_e0();
+      disable_e1();
+      disable_e2();
+      delay(100);
+      LCD_ALERTMESSAGEPGM(MSG_FILAMENTCHANGE);
+      uint8_t cnt=0;
+		
+      while(!lcd_clicked())
+      {
+        cnt++;
+        manage_heater();
+        manage_inactivity();
+        lcd_update();
+        if(cnt==0)
+        {
+        #if BEEPER > 0
+          SET_OUTPUT(BEEPER);
+
+          WRITE(BEEPER,HIGH);
+          delay(3);
+          WRITE(BEEPER,LOW);
+          delay(3);
+        #else
+          lcd_buzz(1000/6,100);
+        #endif
+        }
+      }
+
+      plan_set_e_position(current_position[E_AXIS]);
+      plan_buffer_line(lastpos[X_AXIS], lastpos[Y_AXIS], target[Z_AXIS], target[E_AXIS], feedrate/60, active_extruder); //move xy back
+      plan_buffer_line(lastpos[X_AXIS], lastpos[Y_AXIS], lastpos[Z_AXIS], target[E_AXIS], feedrate/60, active_extruder); //move z back
+      plan_buffer_line(lastpos[X_AXIS], lastpos[Y_AXIS], lastpos[Z_AXIS], lastpos[E_AXIS], feedrate/60, active_extruder); //final untretract
+
+		}
+	}
+}
+
 void process_commands()
 {
   unsigned long codenum; //throw away variable
@@ -1241,6 +1354,17 @@ void process_commands()
         }
       }
      break;
+#ifdef PAUSE_NO_FILAMENT
+	case 43: //M43 - Standby on material exhausted
+      if (code_seen('S'))
+	  {
+		if (code_value() > 0)
+			pause_on_no_filament[active_extruder] = true;
+		else 
+			pause_on_no_filament[active_extruder] = false;
+	  }
+	 break;
+#endif
     case 104: // M104
       if(setTargetedHotend(104)){
         break;
